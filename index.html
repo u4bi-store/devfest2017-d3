@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>DevFest 2017 D3</title>
+        <meta charset="utf-8">
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+        <style>
+            svg { background-color: #eee; }
+        </style>
+    </head>
+    <body>
+        <h3>DevFest 2017 D3</h3>
+        
+        <p class="control">
+            <label for="year">Year:</label>
+            <input type="range" min="2006" max="2016" value="2016">
+        </p>            
+
+        <svg width="200" height="300">
+            <g class="data"></g>
+            <g class="axis x-axis"></g>
+            <g class="axis y-axis"></g>
+        </svg>
+        
+        <script>
+            d3.csv('model/ggi2016_clean.csv', function (e, data) {
+                console.log(data[0]);
+                // 데이터 읽기: d3.csv
+
+                data.forEach(function (d) {
+                    // 데이터 가공: "unary plus is the fastest and preferred way" --MDN
+                    d.year = +d.year;
+                    d.overall = +d.overall;
+                    d.economic = +d.economic;
+                    d.education = +d.education;
+                    d.health = +d.health;
+                    d.political = +d.political;
+                });
+
+                data.sort(function(a, b ){
+                    // 순위 드러내기 - 정렬
+                    return d3.descending(a.overall, b.overall);
+                });
+
+                var filtered = data.filter(function (d) { return d.year === 2016; });
+
+                render(filtered);
+            });
+
+            function render(data) {
+                var root = d3.select('svg');
+
+                var L = 30, R = 10, T = 10, B = 30;
+                var W = root.attr('width'), H = root.attr('height');
+
+                // 스케일 함수 정의: d3.scaleLinear()
+                var x = d3.scaleLinear()
+                    .domain([0, 1])
+                    .range([0, W - L - R]);
+
+                var y = d3.scaleLinear()
+                    .domain([0, data.length])
+                    .range([0, H - T - B]);
+
+                // 축 그리기: d3.axisLeft(), d3.axisBottom()
+                var xAxis = d3.axisBottom()
+                    .ticks(2)
+                    .scale(x);
+
+                var yAxis = d3.axisLeft()
+                    .ticks(2)
+                    .scale(y);
+                    
+                    
+                root.select('.x-axis')
+                    .style('transform', 'translate(' + L + 'px, ' + (H - B) + 'px)')
+                    .call(xAxis);
+
+                root.select('.y-axis')
+                    .style('transform', 'translate(' + L + 'px, ' + T + 'px)')
+                    .call(yAxis);
+
+                var lines = root.select('.data')
+                    .style('transform', 'translate(' + L + 'px, ' + T + 'px)')
+                    .selectAll('line').data(data);
+
+                    /*
+                        데이터가 있는데 화면요소에 없거나
+                        데이터가 사라지면 화면 요소를 지워주고
+                        데이터가 교체되면 화면 요소를 교체해줘야 함
+
+                        데이터 표현 - Enter/Update/Exit selection 이해하기
+
+                    */
+
+                lines.enter()
+                    .append('line')
+                    .attr('stroke', function(d){
+                        //한국 강조하기 - 어떻게? 시지각의 tunable processing 개념 활용하여 pop-out 효과 나타내기 (Visual Thinking for Design, Colin Ware)
+                        return d.country === 'South Korea' ? 'red' : '#888';
+                    })
+                    .attr('x1', 0)
+                    .attr('x2', function(d){
+                        // console.log(d);
+                        return x(d.overall);
+                    })
+                    .attr('y1', function(d, i){
+                        return y(i);
+                    })
+                    .attr('y2', function(d, i){
+                        return y(i);
+                    });
+                    
+            }
+
+        </script>
+    </body>
+</html>
